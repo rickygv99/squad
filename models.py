@@ -8,6 +8,34 @@ import layers
 import torch
 import torch.nn as nn
 
+class QANet(nn.Module):
+    """Custom implementation of QANet model for SQuAD.
+
+    Based on the paper:
+    "QANet: Combining Local Convolution with Global Self-Attention for Reading Comprehension"
+    by Adams Wei Yu, David Dohan, Minh-Thang Luong
+    (https://arxiv.org/pdf/1804.09541.pdf)
+
+    Follows the following high-level structure:
+        - Embedding layer
+        - Encoder layer
+        - Attention layer
+        - Model encoder layer
+        - Output layer
+
+    Args:
+        word_vectors (torch.Tensor): Pre-trained word ectors.
+        hidden_size (int): Number of features in the hidden state at each layer.
+        drop_prob (float): Dropout probability.
+    """
+    def __init__(self, word_vectors, hidden_size, drop_prob=0.):
+        super(QANet, self).__init__()
+        self.emb = layers.QANetEmbedding(
+            word_vectors=word_vectors,
+            hidden_size=hidden_size,
+            drop_prob=drop_prob
+        )
+
 
 class BiDAF(nn.Module):
     """Baseline BiDAF model for SQuAD.
