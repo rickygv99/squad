@@ -42,6 +42,30 @@ class QANetEmbedding(nn.Module):
         x = self.hwy(x)
         return x
 
+class DepthwiseSeparableConvolution(nn.Module):
+    def __init__(self, in_channels, out_channels, k, bias=False):
+        super(DepthwiseSeparableConvolution, self).__init__()
+        self.depthwise_conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=in_channels,
+            kernel_size=k,
+            padding=k//2,
+            groups=in_channels,
+            bias=bias
+        )
+        self.pointwise_conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            k=1,
+            padding=0,
+            bias=bias
+        )
+
+    def forward(self, x):
+        x = self.depthwise_conv(x)
+        x = self.pointwise_conv(x)
+        return x
+
 class QANetOutput(nn.Module):
     """Output layer used by QANet.
 
