@@ -65,7 +65,80 @@ class DepthwiseSeparableConvolution(nn.Module):
         x = self.depthwise_conv(x)
         x = self.pointwise_conv(x)
         return x
-        
+
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, d_k):
+        super(ScaledDotProductAttention, self).__init__()
+        self.d_k = d_k
+        self.softmax = nn.Softmax()
+
+    def forward(self, q, k, v):
+        k_t = k.permute(0, 1, 3, 2)
+        qk_t = torch.matmul(q, k_t) / np.sqrt(self.d_k)
+        x = self.softmax(qk_t, dim=-1)
+        x = torch.matmul(x, v)
+        return x
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, drop_prob, n_heads=8):
+        super(MultiHeadAttention, self).__init__()
+        self.drop_prob = drop_prob
+        self.n_heads = n_heads
+        self.d_model = d_model
+        self.d_k = d_model // n_heads
+        self.d_v = d_model // n_heads
+
+        self.projection_q = nn.Linear(hidden_size, d_model * d_k)
+        self.projection_k = nn.Linear(hidden_size, d_model * d_k)
+        self.projection_v = nn.Linear(hidden_size, d_model * d_v)
+
+        self.scaled_dp_attention = ScaledDotProductAttention(d_k)
+
+    def forward(self, q, k, v):
+        proj_q = self.projection_q(q)
+        proj_k = self.projection_k(k)
+        proj_v = self.projection_v(v)
+
+        attention = self.scaled_dp_attention(proj_q, proj_k, proj_v)
+
+        return attention
+
+def EncoderBlock(nn.Module):
+    def __init__(self, hidden_size, k, drop_prob, num_convs=4):
+        super(EncoderBlock, self).__init__()
+        self.drop_prob = drop_prob
+        self.num_convs = num_convs
+        self.convs = nn.ModuleList([DepthwiseSeparableConvolution(hidden_size, hidden_size, k) for i in range(num_convs)])
+        self.norms_convs = nn.ModuleList([nn.LayerNorm(hidden_size) for i in range(num_convs)])
+        self.norm_attention = nn.LayerNorm(hidden_size)
+        self.norm_feedforward = nn.LayerNorm(hidden_size)
+        self.multiheadattention = MultiHeadAttention(hidden_size, drop_prob)
+        self.feedforward = nn.Linear(hidden_size, hidden_size)
+
+    def forward(self, x):
+        # TODO: Implement positional encoding
+        for i in num_convs:
+            residual = x
+            x = self.norms_convs[i](x)
+            x = self.convs[i](x)
+            x = x + residual
+        residual = x
+        x = self.norm_attention(x)
+        x = self.multiheadattention(x, x, x)
+        x = x + residual
+        residual = x
+        x = self.norm_feedforward(x)
+        x = self.feedforward(x)
+        x = x + residual
+        return x
+
+
+# CODE BELOW THIS LINE IS PART OF ORIGINAL BASELINE CODE
+# --------------------------------------------------------
+
+
+
+
 
 class Embedding(nn.Module):
     """Embedding layer used by BiDAF, without the character-level component.
