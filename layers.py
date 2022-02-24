@@ -132,10 +132,30 @@ def EncoderBlock(nn.Module):
         x = x + residual
         return x
 
+class QANetOutput(nn.Module):
+    """Output layer used by QANet.
+
+    Args:
+    """
+    def __init__(self, hidden_size):
+        super(QANetOutput, self).__init__()
+        self.linear_1 = nn.Linear(hidden_size * 2, 1)
+        self.linear_2 = nn.Linear(hidden_size * 2, 1)
+
+    def forward(self, M0, M1, M2, mask):
+        W_1 = torch.cat((M0, M1), 2)
+        W_2 = torch.cat((M0, M2), 2)
+        L_1 = self.linear1(W_1)
+        L_2 = self.linear2(W_2)
+        p_1 = masked_softmax(L_1.squeeze(), mask, -1, True)
+        p_2 = masked_softmax(L_2.squeeze(), mask, -1, True)
+        return p_1, p_2
+
+
+        
 
 # CODE BELOW THIS LINE IS PART OF ORIGINAL BASELINE CODE
 # --------------------------------------------------------
-
 
 
 
