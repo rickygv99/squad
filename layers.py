@@ -25,7 +25,7 @@ class QANetEmbedding(nn.Module):
         self.drop_prob = drop_prob
         self.w_embed = nn.Embedding.from_pretrained(word_vectors)
         self.c_embed = nn.Embedding.from_pretrained(char_vectors)
-        self.conv = nn.Conv2d(p_2, hidden_size, bias=True)
+        self.conv = nn.Conv2d(p_2, hidden_size, kernel_size=(1,5), bias=True)
         self.hwy = HighwayEncoder(2, hidden_size)
 
     def forward(self, c, w):
@@ -56,7 +56,7 @@ class DepthwiseSeparableConvolution(nn.Module):
         self.pointwise_conv = nn.Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
-            k=1,
+            kernel_size=1,
             padding=0,
             bias=bias
         )
@@ -85,14 +85,15 @@ class MultiHeadAttention(nn.Module):
         self.drop_prob = drop_prob
         self.n_heads = n_heads
         self.d_model = d_model
-        self.d_k = d_model // n_heads
-        self.d_v = d_model // n_heads
 
-        self.projection_q = nn.Linear(hidden_size, d_model * d_k)
-        self.projection_k = nn.Linear(hidden_size, d_model * d_k)
-        self.projection_v = nn.Linear(hidden_size, d_model * d_v)
+        self.d_k = self.d_model // self.n_heads
+        self.d_v = self.d_model // self.n_heads
 
-        self.scaled_dp_attention = ScaledDotProductAttention(d_k)
+        self.projection_q = nn.Linear(self.d_model, self.d_model * self.d_k)
+        self.projection_k = nn.Linear(self.d_model, self.d_model * self.d_k)
+        self.projection_v = nn.Linear(self.d_model, self.d_model * self.d_v)
+
+        self.scaled_dp_attention = ScaledDotProductAttention(self.d_k)
 
     def forward(self, q, k, v):
         proj_q = self.projection_q(q)
@@ -103,7 +104,7 @@ class MultiHeadAttention(nn.Module):
 
         return attention
 
-def EncoderBlock(nn.Module):
+class EncoderBlock(nn.Module):
     def __init__(self, hidden_size, k, drop_prob, num_convs):
         super(EncoderBlock, self).__init__()
         self.drop_prob = drop_prob
