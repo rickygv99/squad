@@ -24,7 +24,8 @@ class QANet(nn.Module):
         - Output layer
 
     Args:
-        word_vectors (torch.Tensor): Pre-trained word ectors.
+        char_vectors (torch.Tensor): Pre-trained char vectors.
+        word_vectors (torch.Tensor): Pre-trained word vectors.
         hidden_size (int): Number of features in the hidden state at each layer.
         drop_prob (float): Dropout probability.
     """
@@ -56,8 +57,33 @@ class QANet(nn.Module):
             hidden_size=hidden_size
         )
 
-    def forward(self):
-        # TODO: Need to write forward() function still
+    def forward(self, cc_idxs, qc_idxs, cw_idxs, qw_idxs):
+        c_mask = torch.zeros_like(cw_idxs) != cw_idxs
+        q_mask = torch.zeros_like(qw_idxs) != qw_idxs
+
+        c_emb = self.input_embedding(cc_idxs, cw_idxs)
+        q_emb = self.input_embedding(qc_idxs, qw_idxs)
+
+        c_enc = self.embedding_encoder(c_emb)
+        q_enc = self.embedding_encoder(q_emb)
+
+        att = self.attention(c_enc, q_enc, c_mask, q_mask)
+
+        M0 = att
+        for model_encoder_block in self.model_encoder:
+            M0 = model_encoder_block(M0)
+
+        M1 = M0
+        for model_encoder_block in self.model_encoder:
+            M1 = model_encoder_block(M1)
+
+        M2 = M1
+        for model_encoder_block in self.model_encoder:
+            M2 = model_encoder_block(M2)
+
+        start_prob, end_prob = self.output(M0, M1, M2, c_mask)
+
+        return start_prob, end_prob
 
 
 class BiDAF(nn.Module):
