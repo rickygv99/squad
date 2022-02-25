@@ -29,7 +29,7 @@ class QANet(nn.Module):
         hidden_size (int): Number of features in the hidden state at each layer.
         drop_prob (float): Dropout probability.
     """
-    def __init__(self, char_vectors, word_vectors, hidden_size, drop_prob):
+    def __init__(self, char_vectors, word_vectors, hidden_size, drop_prob=0.):
         super(QANet, self).__init__()
         self.input_embedding = layers.QANetEmbedding(
             char_vectors=char_vectors,
