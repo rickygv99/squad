@@ -28,13 +28,36 @@ class QANet(nn.Module):
         hidden_size (int): Number of features in the hidden state at each layer.
         drop_prob (float): Dropout probability.
     """
-    def __init__(self, word_vectors, hidden_size, drop_prob=0.):
+    def __init__(self, char_vectors, word_vectors, hidden_size, drop_prob):
         super(QANet, self).__init__()
-        self.emb = layers.QANetEmbedding(
+        self.input_embedding = layers.QANetEmbedding(
+            char_vectors=char_vectors,
             word_vectors=word_vectors,
             hidden_size=hidden_size,
             drop_prob=drop_prob
         )
+        self.embedding_encoder = layers.EncoderBlock(
+            hidden_size=hidden_size,
+            k=7,
+            drop_prob=drop_prob,
+            num_convs=4
+        )
+        self.attention = layers.BiDAFAttention(
+            hidden_size=hidden_size,
+            drop_prob=drop_prob
+        )
+        self.model_encoder = nn.ModuleList([layers.EncoderBlock(
+            hidden_size=hidden_size,
+            k=7,
+            drop_prob=drop_prob,
+            num_convs=2
+        )] * 7)
+        self.output = layers.QANetOutput(
+            hidden_size=hidden_size
+        )
+
+    def forward(self):
+        # TODO: Need to write forward() function still
 
 
 class BiDAF(nn.Module):

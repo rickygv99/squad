@@ -104,7 +104,7 @@ class MultiHeadAttention(nn.Module):
         return attention
 
 def EncoderBlock(nn.Module):
-    def __init__(self, hidden_size, k, drop_prob, num_convs=4):
+    def __init__(self, hidden_size, k, drop_prob, num_convs):
         super(EncoderBlock, self).__init__()
         self.drop_prob = drop_prob
         self.num_convs = num_convs
@@ -152,7 +152,7 @@ class QANetOutput(nn.Module):
         return p_1, p_2
 
 
-        
+
 
 # CODE BELOW THIS LINE IS PART OF ORIGINAL BASELINE CODE
 # --------------------------------------------------------
