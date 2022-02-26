@@ -7,6 +7,7 @@ Author:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from util import masked_softmax
@@ -25,8 +26,8 @@ class QANetEmbedding(nn.Module):
         self.drop_prob = drop_prob
         self.w_embed = nn.Embedding.from_pretrained(word_vectors)
         self.c_embed = nn.Embedding.from_pretrained(char_vectors)
-        self.conv = nn.Conv2d(p_2, hidden_size, kernel_size=(1,5), bias=True)
-        self.hwy = HighwayEncoder(2, hidden_size)
+        self.conv = nn.Conv2d(self.c_embed.embedding_dim, p_2, kernel_size=(1,5), bias=True)
+        self.hwy = HighwayEncoder(2, p_1 + p_2)
 
     def forward(self, c, w):
         x_w = self.w_embed(w) # (batch_size, seq_len, embed_size)
@@ -36,16 +37,17 @@ class QANetEmbedding(nn.Module):
         x_c = F.dropout(x_c, self.drop_prob, self.training)
         x_c = x_c.permute(0, 3, 1, 2) # (batch_size, embed_size_2, seq_len, embed_size_1)
         x_c = self.conv(x_c)
-        x_c = x_c.permute(0, 1, 3, 2) # (batch_size, seq_len, embed_size_2, embed_size_1)
+        x_c = x_c.permute(0, 2, 1, 3) # (batch_size, seq_len, embed_size_2, embed_size_1)
+        x_c, _ = torch.max(x_c, dim=3)
 
         x = torch.cat([x_w, x_c], dim=2) # Join on embed_size
         x = self.hwy(x)
         return x
 
 class DepthwiseSeparableConvolution(nn.Module):
-    def __init__(self, in_channels, out_channels, k, bias=False):
+    def __init__(self, in_channels, out_channels, k, bias=True):
         super(DepthwiseSeparableConvolution, self).__init__()
-        self.depthwise_conv = nn.Conv2d(
+        self.depthwise_conv = nn.Conv1d(
             in_channels=in_channels,
             out_channels=in_channels,
             kernel_size=k,
@@ -53,7 +55,7 @@ class DepthwiseSeparableConvolution(nn.Module):
             groups=in_channels,
             bias=bias
         )
-        self.pointwise_conv = nn.Conv2d(
+        self.pointwise_conv = nn.Conv1d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=1,
@@ -70,12 +72,12 @@ class ScaledDotProductAttention(nn.Module):
     def __init__(self, d_k):
         super(ScaledDotProductAttention, self).__init__()
         self.d_k = d_k
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=2)
 
     def forward(self, q, k, v):
-        k_t = k.permute(0, 1, 3, 2)
+        k_t = k.permute(0, 2, 1)
         qk_t = torch.matmul(q, k_t) / np.sqrt(self.d_k)
-        x = self.softmax(qk_t, dim=-1)
+        x = self.softmax(qk_t)
         x = torch.matmul(x, v)
         return x
 
@@ -92,6 +94,7 @@ class MultiHeadAttention(nn.Module):
         self.projection_q = nn.Linear(self.d_model, self.d_model * self.d_k)
         self.projection_k = nn.Linear(self.d_model, self.d_model * self.d_k)
         self.projection_v = nn.Linear(self.d_model, self.d_model * self.d_v)
+        self.projection_map = nn.Linear(self.d_model * self.d_v, self.d_model)
 
         self.scaled_dp_attention = ScaledDotProductAttention(self.d_k)
 
@@ -101,6 +104,7 @@ class MultiHeadAttention(nn.Module):
         proj_v = self.projection_v(v)
 
         attention = self.scaled_dp_attention(proj_q, proj_k, proj_v)
+        attention = self.projection_map(attention)
 
         return attention
 
@@ -118,10 +122,12 @@ class EncoderBlock(nn.Module):
 
     def forward(self, x):
         # TODO: Implement positional encoding
-        for i in num_convs:
+        for i in range(self.num_convs):
             residual = x
             x = self.norms_convs[i](x)
+            x = x.permute(0, 2, 1)
             x = self.convs[i](x)
+            x = x.permute(0, 2, 1)
             x = x + residual
         residual = x
         x = self.norm_attention(x)
@@ -146,8 +152,8 @@ class QANetOutput(nn.Module):
     def forward(self, M0, M1, M2, mask):
         W_1 = torch.cat((M0, M1), 2)
         W_2 = torch.cat((M0, M2), 2)
-        L_1 = self.linear1(W_1)
-        L_2 = self.linear2(W_2)
+        L_1 = self.linear_1(W_1)
+        L_2 = self.linear_2(W_2)
         p_1 = masked_softmax(L_1.squeeze(), mask, -1, True)
         p_2 = masked_softmax(L_2.squeeze(), mask, -1, True)
         return p_1, p_2
