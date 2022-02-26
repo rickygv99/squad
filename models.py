@@ -56,6 +56,9 @@ class QANet(nn.Module):
         self.output = layers.QANetOutput(
             hidden_size=hidden_size
         )
+        self.convs_map_c = layers.DepthwiseSeparableConvolution(500, hidden_size, 7)
+        self.convs_map_q = layers.DepthwiseSeparableConvolution(500, hidden_size, 7)
+        self.convs_map_att = layers.DepthwiseSeparableConvolution(400, hidden_size, 7)
 
     def forward(self, cc_idxs, qc_idxs, cw_idxs, qw_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
@@ -63,11 +66,20 @@ class QANet(nn.Module):
 
         c_emb = self.input_embedding(cc_idxs, cw_idxs)
         q_emb = self.input_embedding(qc_idxs, qw_idxs)
+        c_emb = c_emb.permute(0, 2, 1)
+        c_emb = self.convs_map_c(c_emb)
+        c_emb = c_emb.permute(0, 2, 1)
+        q_emb = q_emb.permute(0, 2, 1)
+        q_emb = self.convs_map_q(q_emb)
+        q_emb = q_emb.permute(0, 2, 1)
 
         c_enc = self.embedding_encoder(c_emb)
         q_enc = self.embedding_encoder(q_emb)
 
         att = self.attention(c_enc, q_enc, c_mask, q_mask)
+        att = att.permute(0, 2, 1)
+        att = self.convs_map_att(att)
+        att = att.permute(0, 2, 1)
 
         M0 = att
         for model_encoder_block in self.model_encoder:
