@@ -112,7 +112,7 @@ class PositionalEncoding(nn.Module):
     def __init__(self, length, d_model):
         super(PositionalEncoding, self).__init__()
         pos = torch.arange(length)
-        pos = torch.tile(pos, (,d_model))
+        pos = torch.tile(pos, (d_model))
 
         i_2 = torch.arange(d_model)[0:d_model:2]
         i_2 = torch.repeat_interleave(i_2, 2)
