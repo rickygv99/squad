@@ -117,8 +117,8 @@ class PositionalEncoding(nn.Module):
         i_2 = torch.repeat_interleave(i_2, 2)
 
         self.pe = torch.zeros((length, d_model))
-        self.pe[:, 0:d_model:2] = torch.sin(pos / (10000 ** (i_2 / d_model)))[:, 0:d_model:2]
-        self.pe[:, 1:d_model:2] = torch.cos(pos / (10000 ** (i_2 / d_model)))[:, 1:d_model:2]
+        self.pe[:, 0:d_model:2] = torch.sin(torch.div(pos, 10000 ** (i_2 / d_model)))[:, 0:d_model:2]
+        self.pe[:, 1:d_model:2] = torch.cos(torch.div(pos, 10000 ** (i_2 / d_model)))[:, 1:d_model:2]
         self.pe = nn.Parameter(self.pe, requires_grad=False)
 
     def forward(self, x):
