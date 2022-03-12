@@ -41,7 +41,8 @@ class QANet(nn.Module):
             hidden_size=hidden_size,
             k=7,
             drop_prob=drop_prob,
-            num_convs=4
+            num_convs=4,
+            length=500
         )
         self.attention = layers.BiDAFAttention(
             hidden_size=hidden_size,
@@ -51,7 +52,8 @@ class QANet(nn.Module):
             hidden_size=hidden_size,
             k=7,
             drop_prob=drop_prob,
-            num_convs=2
+            num_convs=2,
+            length=500
         )] * 7)
         self.output = layers.QANetOutput(
             hidden_size=hidden_size
