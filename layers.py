@@ -111,7 +111,8 @@ class MultiHeadAttention(nn.Module):
 class PositionalEncoding(nn.Module):
     def __init__(self, length, d_model):
         super(PositionalEncoding, self).__init__()
-        pos = torch.arange(length).repeat(d_model)
+        pos = torch.arange(length).repeat(d_model, 1)
+        pos = pos.permute(1, 0)
 
         i_2 = torch.arange(d_model)[0:d_model:2]
         i_2 = torch.repeat_interleave(i_2, 2)
@@ -122,12 +123,12 @@ class PositionalEncoding(nn.Module):
         self.pe = nn.Parameter(self.pe, requires_grad=False)
 
     def forward(self, x):
-        x = x + self.pe[:, 0:x.size(dim=1)]
+        x = x + self.pe[0:x.size(dim=1), :]
 
         return x
 
 class EncoderBlock(nn.Module):
-    def __init__(self, hidden_size, k, drop_prob, num_convs, length, p_1=300):
+    def __init__(self, hidden_size, k, drop_prob, num_convs, length):
         super(EncoderBlock, self).__init__()
         self.drop_prob = drop_prob
         self.num_convs = num_convs
@@ -137,7 +138,7 @@ class EncoderBlock(nn.Module):
         self.norm_feedforward = nn.LayerNorm(hidden_size)
         self.multiheadattention = MultiHeadAttention(hidden_size, drop_prob)
         self.feedforward = nn.Linear(hidden_size, hidden_size)
-        self.positionalencoding = PositionalEncoding(length, p_1)
+        self.positionalencoding = PositionalEncoding(length, hidden_size)
 
     def forward(self, x):
         x = self.positionalencoding(x)
