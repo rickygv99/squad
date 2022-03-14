@@ -103,7 +103,7 @@ def get_train_args():
                         help='Learning rate.')
     parser.add_argument('--l2_wd',
                         type=float,
-                        default=0,
+                        default=3e-7,
                         help='L2 weight decay.')
     parser.add_argument('--num_epochs',
                         type=int,

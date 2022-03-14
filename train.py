@@ -78,9 +78,9 @@ def main(args):
     #optimizer = optim.Adadelta(model.parameters(), args.lr,
                                #weight_decay=args.l2_wd)
     #optimizer = optim.Adam(params=model.parameters(), lr=1, betas=(0.9, 0.999), eps=1e-7, weight_decay=3e-7)
-    optimizer = optim.AdamW(params=model.parameters(), lr=1, betas=(0.9, 0.999), eps=1e-7, weight_decay=3e-7)
-    cr = args.lr / math.log2(1000)
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda ee: cr * math.log2(ee + 1) if ee < 1000 else args.lr)
+    optimizer = optim.AdamW(params=model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-7, weight_decay=3e-7)
+    log = math.log(1000)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda ee: (0.001 / log) * math.log2(ee + 1) if ee < 1000 else 0.001)
     #scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
 
     # Get data loader
