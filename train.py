@@ -79,9 +79,9 @@ def main(args):
                                #weight_decay=args.l2_wd)
     #optimizer = optim.Adam(params=model.parameters(), lr=1, betas=(0.9, 0.999), eps=1e-7, weight_decay=3e-7)
     optimizer = optim.AdamW(params=model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-7, weight_decay=3e-7)
-    log = math.log(1000)
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda ee: (0.001 / log) * math.log2(ee + 1) if ee < 1000 else 0.001)
-    #scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
+    #log = math.log(1000)
+    #scheduler = sched.LambdaLR(optimizer, lambda s: (0.001 / log) * math.log(s) if s < 1000 else 0.001)
+    scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
 
     # Get data loader
     log.info('Building dataset...')
